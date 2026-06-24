@@ -11,12 +11,22 @@ from sdypy_sep005 import Sep005Data
 def read_tdms(path: Union[str, Path]) -> list[Sep005Data]:  # noqa: UP007
     """Primary function to read tdms files based on the path.
 
-    .. code-block:: python
-        signals = dw.readTDMS(path)
-
     Returns an empty list when file failed
 
-    :param path: path to a .tdms file
+    Parameters
+    ----------
+    path : Union[str, Path]
+        Path to a .tdms file
+
+    Returns
+    -------
+    list[Sep005Data]
+        List of Sep005Data objects
+
+    Raises
+    ------
+    UserWarning
+        When the file is not found or corrupted
     """
 
     if not Path(path).is_file():
@@ -73,8 +83,29 @@ def write_tdms(
     author: str = "sdypy_io_tdms",
     timestamp=None,
 ):
-    """Write a SEP005 formatted object into a TDMS file"""
-    if not isinstance(signals, list):
+    """Write a SEP005 formatted object into a TDMS file
+
+    Parameters
+    ----------
+    signals : Union[list[Sep005Data], list[dict], Sep005Data, dict]
+        List of Sep005Data objects or dictionaries
+    path : Union[str, Path]
+        Path to a .tdms file
+    author : str, optional
+        Author of the TDMS file (default: "sdypy_io_tdms")
+    timestamp : datetime.datetime, optional
+        Timestamp of the TDMS file (default: None)
+
+    Raises
+    ------
+    ValueError
+        When the signal.group attribute is None
+    UserWarning
+        When the file is not found or corrupted
+    """
+    if isinstance(signals, tuple):
+        signals = list(signals)
+    elif not isinstance(signals, list):
         signals = [signals]  # Convert single instance to a list
 
     signals_converted: list[Sep005Data] = []
@@ -98,7 +129,7 @@ def write_tdms(
     root_object = RootObject(
         properties={
             "author": author,
-            "datestring": timestamp.strftime("%Y/%m/%d H:%M:%S"),
+            "datestring": timestamp.strftime("%Y/%m/%d %H:%M:%S"),
         }
     )
 

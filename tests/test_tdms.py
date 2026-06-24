@@ -3,6 +3,8 @@ from pathlib import Path
 
 import numpy as np
 import pytest
+from nptdms import TdmsFile
+from pydantic import ValidationError
 from pytz import utc
 from sdypy_sep005 import Sep005Data
 
@@ -114,6 +116,7 @@ def test_compliance_sep005(filename):
     """
     file_path = Path(static_dir) / "good" / filename
     signals = read_tdms(file_path)  # should already not crash here
+    assert all(isinstance(signal, Sep005Data) for signal in signals)
 
     assert len(signals) != 0  # Not an empty response
     for signal in signals:
@@ -192,3 +195,57 @@ def test_write_tdms(tmp_path):
     assert Path(tdms_path).is_file()  # A file was created
     signals_read = read_tdms(tdms_path)
     assert len(signals_read) == 1
+
+
+def valid_signal(**overrides):
+    signal = {
+        "name": "test_channel",
+        "group": "acceleration",
+        "unit_str": "m/s²",
+        "data": [1.0, 2.0, 3.0],
+        "fs": 10.0,
+    }
+    signal.update(overrides)
+    return signal
+
+
+def test_write_tdms_empty_data(tmp_path):
+    tdms_path = tmp_path / "empty_data.tdms"
+    write_tdms(valid_signal(data=[]), tdms_path)
+
+    signal_read = read_tdms(tdms_path)[0]
+    assert len(signal_read.data) == 0
+
+
+def test_write_tdms_custom_author_and_timestamp(tmp_path):
+    timestamp = datetime.datetime(2024, 1, 2, 3, 4, 5, tzinfo=utc)
+    tdms_path = tmp_path / "custom_metadata.tdms"
+    write_tdms(
+        valid_signal(),
+        tdms_path,
+        author="unit_test",
+        timestamp=timestamp,
+    )
+
+    with TdmsFile(tdms_path) as tdms_file:
+        assert tdms_file.properties["author"] == "unit_test"
+        assert tdms_file.properties["datestring"] == "2024/01/02 03:04:05"
+
+
+def test_write_tdms_rejects_none_group(tmp_path):
+    signal = Sep005Data.model_validate(
+        valid_signal(group=None),
+    )
+    tdms_path = tmp_path / "missing_group.tdms"
+
+    with pytest.raises(ValueError, match=r"signal\.group attribute"):
+        write_tdms(signal, tdms_path)
+
+
+def test_write_tdms_rejects_non_sep005_dict(tmp_path):
+    tdms_path = tmp_path / "invalid_signal.tdms"
+    invalid_signal = valid_signal()
+    del invalid_signal["fs"]
+
+    with pytest.raises(ValidationError):
+        write_tdms(invalid_signal, tdms_path)

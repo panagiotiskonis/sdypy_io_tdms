@@ -34,9 +34,6 @@ dependencies = [
   "pytz"
 ]
 
-[tool.uv.sources]
-sdypy-sep005 = { path = "../sdypy-sep005-compliance", editable = true }
-
 # -- Project package.
 [build-system]
 requires = ["hatchling"]
