@@ -41,7 +41,7 @@ def read_tdms(path: Union[str, Path]) -> list[Sep005Data]:  # noqa: UP007
         )
         return []
 
-    signals = []
+    signals: list[Sep005Data] = []
     groups = tdms_file.groups()
 
     for group in groups:
@@ -62,9 +62,9 @@ def read_tdms(path: Union[str, Path]) -> list[Sep005Data]:  # noqa: UP007
                 signal["start_timestamp"] = np.datetime_as_string(
                     channel.properties["wf_start_time"], unit="s"
                 )
-            signals.append(signal)
+            signals.append(Sep005Data.model_validate(signal))
 
-    return [Sep005Data.model_validate(signal) for signal in signals]
+    return signals
 
 
 def write_tdms(
@@ -77,10 +77,12 @@ def write_tdms(
     if not isinstance(signals, list):
         signals = [signals]  # Convert single instance to a list
 
-    signals_converted: list[Sep005Data] = list(signals)
-    for index, signal in enumerate(signals):
+    signals_converted: list[Sep005Data] = []
+    for signal in signals:
         if isinstance(signal, dict):
-            signals_converted[index] = Sep005Data.model_validate(signal)
+            signals_converted.append(Sep005Data.model_validate(signal))
+        else:
+            signals_converted.append(signal)
 
     if timestamp is None:
         for signal in signals_converted:
@@ -88,6 +90,7 @@ def write_tdms(
                 timestamp = datetime.datetime.fromisoformat(
                     signal.start_timestamp
                 )
+                break
 
         if timestamp is None:
             timestamp = datetime.datetime.now(datetime.timezone.utc)  # noqa: UP017
