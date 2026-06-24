@@ -1,6 +1,5 @@
 Getting started
 ===============
 
-.. include:: ../../README.rst
-
-.. include:: ../../CONTRIBUTING.rst
+See ``README.md`` in the repository root for usage instructions and
+contribution guidelines.
