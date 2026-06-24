@@ -49,7 +49,7 @@ is as follows.
         $ pytest
 
 
-* The docs should be updated for anything but trivial bug fixes. 
+* The docs should be updated for anything but trivial bug fixes.
 
 
 Perform docs check.
